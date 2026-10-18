@@ -35,7 +35,7 @@ stdout is `Welcome to Blitzy` followed by exactly one newline and nothing else, 
 
 ## Verify
 
-Every command below is read-only: none of them writes, moves, truncates or reformats a file.
+Every command below is read-only with respect to the deliverable files: none of them writes, moves, truncates or reformats one. The single trace the table leaves in the working tree is the unittest row's: discovery imports `tests/test_hello_world.py`, so CPython may write an ignored `tests/__pycache__/` bytecode cache — `python3 -B` (or `PYTHONDONTWRITEBYTECODE=1`) suppresses even that. No tracked file is modified by any command below.
 
 | Command | Expected result |
 | --- | --- |
@@ -48,8 +48,11 @@ Every command below is read-only: none of them writes, moves, truncates or refor
 | `python3 hello_world.py \| wc -c` | `18` |
 | `python3 -m unittest discover -s tests -p "test_*.py"` | `Ran 2 tests ... OK` |
 | `git cat-file blob HEAD:hello_world.txt \| wc -l` | `4000` — the committed bytes, not a checkout-converted working tree |
+| `git ls-files` | `.gitignore`, `README.md`, `hello_world.py`, `hello_world.txt`, `tests/test_hello_world.py` — exactly these five paths, in this order, and nothing else |
+| `grep -c -x -F -e "__pycache__/" -e "*.py[codz]" .gitignore` | `2` — the two hygiene patterns that keep interpreter caches out of the tracked set |
+| `grep -o -e "python3 hello_world.py" -e 4000 -e 72000 README.md \| sort -u \| wc -l` | `3` — the bare digit strings `4000` and `72000` and the run command each appear in this README |
 
-Two further whole-file checks: `grep -c $'\r' hello_world.txt` must print `0` (grep exits 1 when nothing matches, which is the expected outcome here), and `head -c 3 hello_world.txt` must not be a byte-order-mark sequence.
+Three further whole-file checks: `head -3 hello_world.txt` and `tail -3 hello_world.txt` must each print three lines reading `Welcome to Blitzy` with no number, tab, quote, indent or trailing space; `grep -c $'\r' hello_world.txt` must print `0` (grep exits 1 when nothing matches, which is the expected outcome here); and `head -c 3 hello_world.txt` must not be a byte-order-mark sequence.
 
 ## No generation step exists for `hello_world.txt`
 
@@ -67,4 +70,4 @@ The 4000 lines are literal committed content in the file itself. No script, prog
 └── .gitignore
 ```
 
-`tests/` holds only `tests/test_hello_world.py` and needs no `__init__.py`, because the discovery start directory is also the top level.
+`tests/` holds only `tests/test_hello_world.py` and needs no `__init__.py`, because the discovery start directory is also the top level; the only thing a run adds there is the ignored `tests/__pycache__/` bytecode cache the Verify section names.
